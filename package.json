@@ -1,11 +1,11 @@
 {
   "name": "filepond-plugin-file-encode",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "File Encoding Plugin for FilePond",
   "homepage": "https://pqina.nl/filepond",
-  "main": "filepond-plugin-file-encode.js",
-  "browser": "filepond-plugin-file-encode.js",
-  "module": "index.js",
+  "main": "dist/filepond-plugin-file-encode.js",
+  "browser": "dist/filepond-plugin-file-encode.js",
+  "module": "dist/filepond-plugin-file-encode.esm.js",
   "license": "MIT",
   "author": {
     "name": "PQINA",
