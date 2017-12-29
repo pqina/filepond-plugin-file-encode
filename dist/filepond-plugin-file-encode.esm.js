@@ -1,5 +1,5 @@
 /*
- * FilePondPluginFileEncode 1.0.1
+ * FilePondPluginFileEncode 1.0.2
  * Licensed under MIT, https://opensource.org/licenses/MIT
  * Please visit https://pqina.nl/filepond for details.
  */
@@ -29,14 +29,6 @@ const DataURIWorker = function() {
 var plugin$1 = ({ addFilter, utils }) => {
   // get quick reference to Type utils
   const { Type, createWorker, createRoute } = utils;
-
-  // adds options to options register
-  addFilter('SET_DEFAULT_OPTIONS', options =>
-    Object.assign(options, {
-      // Enable or disable file encoding
-      allowFileEncode: [true, Type.BOOLEAN]
-    })
-  );
 
   // called for each view that is created right after the 'create' method
   addFilter('CREATE_VIEW', viewAPI => {
@@ -73,6 +65,13 @@ var plugin$1 = ({ addFilter, utils }) => {
       })
     );
   });
+
+  return {
+    options: {
+      // Enable or disable file encoding
+      allowFileEncode: [true, Type.BOOLEAN]
+    }
+  };
 };
 
 if (document) {
