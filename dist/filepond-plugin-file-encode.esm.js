@@ -1,5 +1,5 @@
 /*
- * FilePondPluginFileEncode 1.0.2
+ * FilePondPluginFileEncode 1.0.3
  * Licensed under MIT, https://opensource.org/licenses/MIT
  * Please visit https://pqina.nl/filepond for details.
  */
@@ -28,7 +28,7 @@ const DataURIWorker = function() {
 
 var plugin$1 = ({ addFilter, utils }) => {
   // get quick reference to Type utils
-  const { Type, createWorker, createRoute } = utils;
+  const { Type, createWorker, createRoute, applyFilterChain } = utils;
 
   // called for each view that is created right after the 'create' method
   addFilter('CREATE_VIEW', viewAPI => {
@@ -36,32 +36,51 @@ var plugin$1 = ({ addFilter, utils }) => {
     const { is, view, query } = viewAPI;
 
     // only hook up to item view
-    if (!is('file') || !query('GET_ALLOW_FILE_ENCODE')) {
+    if (!is('file-wrapper') || !query('GET_ALLOW_FILE_ENCODE')) {
       return;
     }
 
     // store data
-    const didLoadItem = ({ root, action }) => {
-      if (query('IS_ASYNC')) {
-        return;
-      }
-
+    const encodeItem = ({ root, action }) => {
       const item = query('GET_ITEM', action.id);
 
-      createWorker(DataURIWorker).post({ file: item.file }, data => {
-        root.ref.dataContainer.value = JSON.stringify({
-          id: item.id,
-          name: item.filename,
-          type: item.fileType,
-          size: item.fileSize,
-          data
+      const file = item.file;
+
+      applyFilterChain('PREPARE_OUTPUT', file, {
+        query,
+        item
+      })
+        .then(file => {
+          const worker = createWorker(DataURIWorker);
+
+          worker.post({ file }, data => {
+            root.ref.data.value = JSON.stringify({
+              id: item.id,
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              metadata: item.getMetadata(),
+              data
+            });
+          });
+        })
+        .catch(error => {
+          console.error(error);
         });
-      });
     };
 
     view.registerWriter(
       createRoute({
-        DID_LOAD_ITEM: didLoadItem
+        DID_LOAD_ITEM: ({ root, action }) => {
+          // only do this if is not uploading async
+          if (query('IS_ASYNC')) {
+            return;
+          }
+
+          // we want to encode this item, but only when idling
+          root.dispatch('FILE_ENCODE_ITEM', action, true);
+        },
+        FILE_ENCODE_ITEM: encodeItem
       })
     );
   });
