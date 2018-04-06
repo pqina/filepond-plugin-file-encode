@@ -3,6 +3,7 @@
     "version": "1.0.3",
     "description": "File Encoding Plugin for FilePond",
     "homepage": "https://pqina.nl/filepond",
+    "repository": "pqina/filepond-plugin-file-encode",
     "main": "dist/filepond-plugin-file-encode.js",
     "browser": "dist/filepond-plugin-file-encode.js",
     "module": "dist/filepond-plugin-file-encode.esm.js",
