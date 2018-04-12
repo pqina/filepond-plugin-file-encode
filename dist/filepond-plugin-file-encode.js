@@ -1,5 +1,5 @@
 /*
- * FilePondPluginFileEncode 1.0.3
+ * FilePondPluginFileEncode 1.0.4
  * Licensed under MIT, https://opensource.org/licenses/MIT
  * Please visit https://pqina.nl/filepond for details.
  */
@@ -42,11 +42,33 @@
     // get quick reference to Type utils
     var Type = utils.Type,
       createWorker = utils.createWorker,
-      createRoute = utils.createRoute,
-      applyFilterChain = utils.applyFilterChain;
+      createRoute = utils.createRoute;
+
+    addFilter('SHOULD_PREPARE_OUTPUT', function(shouldPrepareOutput) {
+      return new Promise(function(resolve, reject) {
+        // should alway prepare output
+        resolve(true);
+      });
+    });
+
+    addFilter('COMPLETE_PREPARE_OUTPUT', function(file, _ref2) {
+      var item = _ref2.item;
+      return new Promise(function(resolve, reject) {
+        var metadata = item.getMetadata();
+        delete metadata.base64;
+
+        var worker = createWorker(DataURIWorker);
+        worker.post({ file: file }, function(data) {
+          // store in item metadata
+          item.setMetadata('base64', data);
+
+          // done dealing with prepared output
+          resolve(file);
+        });
+      });
+    });
 
     // called for each view that is created right after the 'create' method
-
     addFilter('CREATE_VIEW', function(viewAPI) {
       // get reference to created view
       var is = viewAPI.is,
@@ -59,38 +81,6 @@
         return;
       }
 
-      // store data
-      var encodeItem = function encodeItem(_ref2) {
-        var root = _ref2.root,
-          action = _ref2.action;
-
-        var item = query('GET_ITEM', action.id);
-
-        var file = item.file;
-
-        applyFilterChain('PREPARE_OUTPUT', file, {
-          query: query,
-          item: item
-        })
-          .then(function(file) {
-            var worker = createWorker(DataURIWorker);
-
-            worker.post({ file: file }, function(data) {
-              root.ref.data.value = JSON.stringify({
-                id: item.id,
-                name: file.name,
-                type: file.type,
-                size: file.size,
-                metadata: item.getMetadata(),
-                data: data
-              });
-            });
-          })
-          .catch(function(error) {
-            console.error(error);
-          });
-      };
-
       view.registerWriter(
         createRoute({
           DID_LOAD_ITEM: function DID_LOAD_ITEM(_ref3) {
@@ -102,10 +92,23 @@
               return;
             }
 
-            // we want to encode this item, but only when idling
-            root.dispatch('FILE_ENCODE_ITEM', action, true);
-          },
-          FILE_ENCODE_ITEM: encodeItem
+            var item = query('GET_ITEM', action.id);
+
+            // extract base64 string
+            var metadata = item.getMetadata();
+            var data = metadata.base64;
+            delete metadata.base64;
+
+            // create JSON string from encoded data and stores in the hidden input field
+            root.ref.data.value = JSON.stringify({
+              id: item.id,
+              name: item.file.name,
+              type: item.file.type,
+              size: item.file.size,
+              metadata: metadata,
+              data: data
+            });
+          }
         })
       );
     });
@@ -118,7 +121,7 @@
     };
   };
 
-  if (document) {
+  if (typeof navigator !== 'undefined' && document) {
     // plugin has loaded
     document.dispatchEvent(
       new CustomEvent('FilePond:pluginloaded', { detail: plugin$1 })
