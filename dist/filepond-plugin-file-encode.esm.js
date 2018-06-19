@@ -1,5 +1,5 @@
 /*
- * FilePondPluginFileEncode 1.0.4
+ * FilePondPluginFileEncode 1.0.5
  * Licensed under MIT, https://opensource.org/licenses/MIT
  * Please visit https://pqina.nl/filepond for details.
  */
@@ -28,7 +28,7 @@ const DataURIWorker = function() {
 
 var plugin$1 = ({ addFilter, utils }) => {
   // get quick reference to Type utils
-  const { Type, createWorker, createRoute, applyFilterChain } = utils;
+  const { Type, createWorker, createRoute, isFile } = utils;
 
   addFilter(
     'SHOULD_PREPARE_OUTPUT',
@@ -43,6 +43,12 @@ var plugin$1 = ({ addFilter, utils }) => {
     'COMPLETE_PREPARE_OUTPUT',
     (file, { item }) =>
       new Promise((resolve, reject) => {
+        // this is not a file, continue
+        if (!isFile(file)) {
+          resolve(file);
+          return;
+        }
+
         const metadata = item.getMetadata();
         delete metadata.base64;
 
