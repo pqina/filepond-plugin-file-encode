@@ -1,6 +1,6 @@
 {
     "name": "filepond-plugin-file-encode",
-    "version": "1.0.5",
+    "version": "2.0.0",
     "description": "File Encoding Plugin for FilePond",
     "homepage": "https://pqina.nl/filepond",
     "repository": "pqina/filepond-plugin-file-encode",
@@ -13,6 +13,6 @@
         "url": "https://pqina.nl"
     },
     "peerDependencies": {
-        "filepond": "^1.8.0"
+        "filepond": "^3.0.0"
     }
 }

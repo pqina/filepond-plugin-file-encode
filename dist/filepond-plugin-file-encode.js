@@ -1,5 +1,5 @@
 /*
- * FilePondPluginFileEncode 1.0.5
+ * FilePondPluginFileEncode 2.0.0
  * Licensed under MIT, https://opensource.org/licenses/MIT
  * Please visit https://pqina.nl/filepond for details.
  */
@@ -45,29 +45,35 @@
       createRoute = utils.createRoute,
       isFile = utils.isFile;
 
-    addFilter('SHOULD_PREPARE_OUTPUT', function(shouldPrepareOutput) {
-      return new Promise(function(resolve, reject) {
-        // should alway prepare output
+    // holds base64 strings till can be moved to item
+
+    var base64Cache = [];
+
+    addFilter('SHOULD_PREPARE_OUTPUT', function() {
+      return new Promise(function(resolve) {
         resolve(true);
       });
     });
 
     addFilter('COMPLETE_PREPARE_OUTPUT', function(file, _ref2) {
       var item = _ref2.item;
-      return new Promise(function(resolve, reject) {
+      return new Promise(function(resolve) {
         // this is not a file, continue
         if (!isFile(file)) {
           resolve(file);
           return;
         }
 
-        var metadata = item.getMetadata();
-        delete metadata.base64;
+        // store metadata settings for this cache
+        base64Cache[item.id] = {
+          metadata: item.getMetadata(),
+          imagedata: null
+        };
 
         var worker = createWorker(DataURIWorker);
-        worker.post({ file: file }, function(data) {
+        worker.post({ file: file }, function(imagedata) {
           // store in item metadata
-          item.setMetadata('base64', data);
+          base64Cache[item.id].imagedata = imagedata;
 
           // done dealing with prepared output
           resolve(file);
@@ -90,7 +96,7 @@
 
       view.registerWriter(
         createRoute({
-          DID_LOAD_ITEM: function DID_LOAD_ITEM(_ref3) {
+          DID_PREPARE_OUTPUT: function DID_PREPARE_OUTPUT(_ref3) {
             var root = _ref3.root,
               action = _ref3.action;
 
@@ -102,9 +108,9 @@
             var item = query('GET_ITEM', action.id);
 
             // extract base64 string
-            var metadata = item.getMetadata();
-            var data = metadata.base64;
-            delete metadata.base64;
+            var cache = base64Cache[item.id];
+            var metadata = cache.metadata;
+            var data = cache.imagedata;
 
             // create JSON string from encoded data and stores in the hidden input field
             root.ref.data.value = JSON.stringify({
@@ -115,6 +121,9 @@
               metadata: metadata,
               data: data
             });
+
+            // clear
+            base64Cache[item.id].imagedata = null;
           }
         })
       );
@@ -128,8 +137,10 @@
     };
   };
 
-  if (typeof navigator !== 'undefined' && document) {
-    // plugin has loaded
+  var isBrowser =
+    typeof window !== 'undefined' && typeof window.document !== 'undefined';
+
+  if (isBrowser && document) {
     document.dispatchEvent(
       new CustomEvent('FilePond:pluginloaded', { detail: plugin$1 })
     );

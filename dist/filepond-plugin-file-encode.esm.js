@@ -1,5 +1,5 @@
 /*
- * FilePondPluginFileEncode 1.0.5
+ * FilePondPluginFileEncode 2.0.0
  * Licensed under MIT, https://opensource.org/licenses/MIT
  * Please visit https://pqina.nl/filepond for details.
  */
@@ -30,11 +30,13 @@ var plugin$1 = ({ addFilter, utils }) => {
   // get quick reference to Type utils
   const { Type, createWorker, createRoute, isFile } = utils;
 
+  // holds base64 strings till can be moved to item
+  const base64Cache = [];
+
   addFilter(
     'SHOULD_PREPARE_OUTPUT',
-    shouldPrepareOutput =>
-      new Promise((resolve, reject) => {
-        // should alway prepare output
+    () =>
+      new Promise(resolve => {
         resolve(true);
       })
   );
@@ -42,20 +44,23 @@ var plugin$1 = ({ addFilter, utils }) => {
   addFilter(
     'COMPLETE_PREPARE_OUTPUT',
     (file, { item }) =>
-      new Promise((resolve, reject) => {
+      new Promise(resolve => {
         // this is not a file, continue
         if (!isFile(file)) {
           resolve(file);
           return;
         }
 
-        const metadata = item.getMetadata();
-        delete metadata.base64;
+        // store metadata settings for this cache
+        base64Cache[item.id] = {
+          metadata: item.getMetadata(),
+          imagedata: null
+        };
 
         const worker = createWorker(DataURIWorker);
-        worker.post({ file }, data => {
+        worker.post({ file }, imagedata => {
           // store in item metadata
-          item.setMetadata('base64', data);
+          base64Cache[item.id].imagedata = imagedata;
 
           // done dealing with prepared output
           resolve(file);
@@ -75,7 +80,7 @@ var plugin$1 = ({ addFilter, utils }) => {
 
     view.registerWriter(
       createRoute({
-        DID_LOAD_ITEM: ({ root, action }) => {
+        DID_PREPARE_OUTPUT: ({ root, action }) => {
           // only do this if is not uploading async
           if (query('IS_ASYNC')) {
             return;
@@ -84,9 +89,9 @@ var plugin$1 = ({ addFilter, utils }) => {
           const item = query('GET_ITEM', action.id);
 
           // extract base64 string
-          const metadata = item.getMetadata();
-          const data = metadata.base64;
-          delete metadata.base64;
+          const cache = base64Cache[item.id];
+          const metadata = cache.metadata;
+          const data = cache.imagedata;
 
           // create JSON string from encoded data and stores in the hidden input field
           root.ref.data.value = JSON.stringify({
@@ -97,6 +102,9 @@ var plugin$1 = ({ addFilter, utils }) => {
             metadata: metadata,
             data
           });
+
+          // clear
+          base64Cache[item.id].imagedata = null;
         }
       })
     );
@@ -110,8 +118,10 @@ var plugin$1 = ({ addFilter, utils }) => {
   };
 };
 
-if (typeof navigator !== 'undefined' && document) {
-  // plugin has loaded
+const isBrowser =
+  typeof window !== 'undefined' && typeof window.document !== 'undefined';
+
+if (isBrowser && document) {
   document.dispatchEvent(
     new CustomEvent('FilePond:pluginloaded', { detail: plugin$1 })
   );
