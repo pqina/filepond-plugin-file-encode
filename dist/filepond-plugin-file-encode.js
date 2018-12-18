@@ -1,8 +1,10 @@
 /*
- * FilePondPluginFileEncode 2.0.0
+ * FilePondPluginFileEncode 2.1.0
  * Licensed under MIT, https://opensource.org/licenses/MIT
  * Please visit https://pqina.nl/filepond for details.
  */
+
+/* eslint-disable */
 (function(global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined'
     ? (module.exports = factory())
@@ -45,8 +47,19 @@
       createRoute = utils.createRoute,
       isFile = utils.isFile;
 
-    // holds base64 strings till can be moved to item
+    var encode = function encode(_ref2) {
+      var name = _ref2.name,
+        file = _ref2.file;
+      return new Promise(function(resolve) {
+        var worker = createWorker(DataURIWorker);
+        worker.post({ file: file }, function(data) {
+          resolve({ name: name, data: data });
+          worker.terminate();
+        });
+      });
+    };
 
+    // holds base64 strings till can be moved to item
     var base64Cache = [];
 
     addFilter('SHOULD_PREPARE_OUTPUT', function() {
@@ -55,13 +68,12 @@
       });
     });
 
-    addFilter('COMPLETE_PREPARE_OUTPUT', function(file, _ref2) {
-      var item = _ref2.item;
+    addFilter('COMPLETE_PREPARE_OUTPUT', function(file, _ref3) {
+      var item = _ref3.item;
       return new Promise(function(resolve) {
-        // this is not a file, continue
-        if (!isFile(file)) {
-          resolve(file);
-          return;
+        // if it's not a file or a list of files, continue
+        if (!isFile(file) && !Array.isArray(file)) {
+          return resolve(file);
         }
 
         // store metadata settings for this cache
@@ -70,12 +82,14 @@
           imagedata: null
         };
 
-        var worker = createWorker(DataURIWorker);
-        worker.post({ file: file }, function(imagedata) {
-          // store in item metadata
-          base64Cache[item.id].imagedata = imagedata;
-
-          // done dealing with prepared output
+        // wait for all file items to be encoded
+        Promise.all(
+          (file instanceof Blob ? [{ name: null, file: file }] : file).map(
+            encode
+          )
+        ).then(function(imagedataItems) {
+          base64Cache[item.id].imagedata =
+            file instanceof Blob ? imagedataItems[0].data : imagedataItems;
           resolve(file);
         });
       });
@@ -96,9 +110,9 @@
 
       view.registerWriter(
         createRoute({
-          DID_PREPARE_OUTPUT: function DID_PREPARE_OUTPUT(_ref3) {
-            var root = _ref3.root,
-              action = _ref3.action;
+          DID_PREPARE_OUTPUT: function DID_PREPARE_OUTPUT(_ref4) {
+            var root = _ref4.root,
+              action = _ref4.action;
 
             // only do this if is not uploading async
             if (query('IS_ASYNC')) {
@@ -106,6 +120,7 @@
             }
 
             var item = query('GET_ITEM', action.id);
+            if (!item) return;
 
             // extract base64 string
             var cache = base64Cache[item.id];

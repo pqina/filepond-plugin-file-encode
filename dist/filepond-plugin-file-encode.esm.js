@@ -1,8 +1,10 @@
 /*
- * FilePondPluginFileEncode 2.0.0
+ * FilePondPluginFileEncode 2.1.0
  * Licensed under MIT, https://opensource.org/licenses/MIT
  * Please visit https://pqina.nl/filepond for details.
  */
+
+/* eslint-disable */
 /**
  * DataURI Worker
  */
@@ -30,6 +32,15 @@ var plugin$1 = ({ addFilter, utils }) => {
   // get quick reference to Type utils
   const { Type, createWorker, createRoute, isFile } = utils;
 
+  const encode = ({ name, file }) =>
+    new Promise(resolve => {
+      const worker = createWorker(DataURIWorker);
+      worker.post({ file }, data => {
+        resolve({ name, data });
+        worker.terminate();
+      });
+    });
+
   // holds base64 strings till can be moved to item
   const base64Cache = [];
 
@@ -45,10 +56,9 @@ var plugin$1 = ({ addFilter, utils }) => {
     'COMPLETE_PREPARE_OUTPUT',
     (file, { item }) =>
       new Promise(resolve => {
-        // this is not a file, continue
-        if (!isFile(file)) {
-          resolve(file);
-          return;
+        // if it's not a file or a list of files, continue
+        if (!isFile(file) && !Array.isArray(file)) {
+          return resolve(file);
         }
 
         // store metadata settings for this cache
@@ -57,12 +67,12 @@ var plugin$1 = ({ addFilter, utils }) => {
           imagedata: null
         };
 
-        const worker = createWorker(DataURIWorker);
-        worker.post({ file }, imagedata => {
-          // store in item metadata
-          base64Cache[item.id].imagedata = imagedata;
-
-          // done dealing with prepared output
+        // wait for all file items to be encoded
+        Promise.all(
+          (file instanceof Blob ? [{ name: null, file }] : file).map(encode)
+        ).then(imagedataItems => {
+          base64Cache[item.id].imagedata =
+            file instanceof Blob ? imagedataItems[0].data : imagedataItems;
           resolve(file);
         });
       })
@@ -87,6 +97,7 @@ var plugin$1 = ({ addFilter, utils }) => {
           }
 
           const item = query('GET_ITEM', action.id);
+          if (!item) return;
 
           // extract base64 string
           const cache = base64Cache[item.id];
