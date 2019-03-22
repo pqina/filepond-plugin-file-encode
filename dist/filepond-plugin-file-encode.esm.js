@@ -1,5 +1,5 @@
 /*!
- * FilePondPluginFileEncode 2.1.2
+ * FilePondPluginFileEncode 2.1.3
  * Licensed under MIT, https://opensource.org/licenses/MIT/
  * Please visit https://pqina.nl/filepond/ for details.
  */
@@ -41,7 +41,9 @@ const plugin = ({ addFilter, utils }) => {
 
   // holds base64 strings till can be moved to item
   const base64Cache = [];
-  addFilter('DID_CREATE_ITEM', item => {
+  addFilter('DID_CREATE_ITEM', (item, { query }) => {
+    if (!query('GET_ALLOW_FILE_ENCODE')) return;
+
     item.extend('getFileEncodeBase64String', () => base64Cache[item.id].data);
     item.extend(
       'getFileEncodeDataURL',
@@ -51,18 +53,21 @@ const plugin = ({ addFilter, utils }) => {
 
   addFilter(
     'SHOULD_PREPARE_OUTPUT',
-    () =>
+    (shouldPrepareOutput, { query }) =>
       new Promise(resolve => {
-        resolve(true);
+        resolve(query('GET_ALLOW_FILE_ENCODE'));
       })
   );
 
   addFilter(
     'COMPLETE_PREPARE_OUTPUT',
-    (file, { item }) =>
+    (file, { item, query }) =>
       new Promise(resolve => {
         // if it's not a file or a list of files, continue
-        if (!isFile(file) && !Array.isArray(file)) {
+        if (
+          !query('GET_ALLOW_FILE_ENCODE') ||
+          (!isFile(file) && !Array.isArray(file))
+        ) {
           return resolve(file);
         }
 

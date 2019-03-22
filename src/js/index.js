@@ -16,23 +16,26 @@ const plugin = ({ addFilter, utils }) => {
     // holds base64 strings till can be moved to item
     const base64Cache = [];
     addFilter(
-        'DID_CREATE_ITEM', (item) => {
+        'DID_CREATE_ITEM', (item, { query }) => {
+            
+            if (!query('GET_ALLOW_FILE_ENCODE')) return;
+
             item.extend('getFileEncodeBase64String', () => base64Cache[item.id].data);
             item.extend('getFileEncodeDataURL', () => `data:${item.fileType};base64,${base64Cache[item.id].data}`);
         }
     );
 
-    addFilter('SHOULD_PREPARE_OUTPUT', () =>
+    addFilter('SHOULD_PREPARE_OUTPUT', (shouldPrepareOutput, { query }) =>
         new Promise(resolve => {
-            resolve(true);
+            resolve(query('GET_ALLOW_FILE_ENCODE'));
         })
     );
 
-    addFilter('COMPLETE_PREPARE_OUTPUT', (file, { item }) => 
+    addFilter('COMPLETE_PREPARE_OUTPUT', (file, { item, query }) => 
         new Promise(resolve => {
 
             // if it's not a file or a list of files, continue
-            if (!isFile(file) && !Array.isArray(file)) {
+            if (!query('GET_ALLOW_FILE_ENCODE') || (!isFile(file) && !Array.isArray(file))) {
                 return resolve(file);
             }
 
@@ -53,6 +56,7 @@ const plugin = ({ addFilter, utils }) => {
 
     // called for each view that is created right after the 'create' method
     addFilter('CREATE_VIEW', viewAPI => {
+        
         // get reference to created view
         const { is, view, query } = viewAPI;
 

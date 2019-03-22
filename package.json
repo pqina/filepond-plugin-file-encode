@@ -1,11 +1,11 @@
 {
     "name": "filepond-plugin-file-encode",
-    "version": "2.1.2",
+    "version": "2.1.3",
     "description": "File Encoding Plugin for FilePond",
     "license": "MIT",
     "author": {
         "name": "PQINA",
-        "url": "https://pqina.nl"
+        "url": "https://pqina.nl/"
     },
     "homepage": "https://pqina.nl/filepond/",
     "repository": "pqina/filepond-plugin-file-encode",

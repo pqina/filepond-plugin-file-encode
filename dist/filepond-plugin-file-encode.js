@@ -1,5 +1,5 @@
 /*!
- * FilePondPluginFileEncode 2.1.2
+ * FilePondPluginFileEncode 2.1.3
  * Licensed under MIT, https://opensource.org/licenses/MIT/
  * Please visit https://pqina.nl/filepond/ for details.
  */
@@ -69,7 +69,9 @@
     }; // holds base64 strings till can be moved to item
 
     var base64Cache = [];
-    addFilter('DID_CREATE_ITEM', function(item) {
+    addFilter('DID_CREATE_ITEM', function(item, _ref3) {
+      var query = _ref3.query;
+      if (!query('GET_ALLOW_FILE_ENCODE')) return;
       item.extend('getFileEncodeBase64String', function() {
         return base64Cache[item.id].data;
       });
@@ -79,16 +81,21 @@
           .concat(base64Cache[item.id].data);
       });
     });
-    addFilter('SHOULD_PREPARE_OUTPUT', function() {
+    addFilter('SHOULD_PREPARE_OUTPUT', function(shouldPrepareOutput, _ref4) {
+      var query = _ref4.query;
       return new Promise(function(resolve) {
-        resolve(true);
+        resolve(query('GET_ALLOW_FILE_ENCODE'));
       });
     });
-    addFilter('COMPLETE_PREPARE_OUTPUT', function(file, _ref3) {
-      var item = _ref3.item;
+    addFilter('COMPLETE_PREPARE_OUTPUT', function(file, _ref5) {
+      var item = _ref5.item,
+        query = _ref5.query;
       return new Promise(function(resolve) {
         // if it's not a file or a list of files, continue
-        if (!isFile(file) && !Array.isArray(file)) {
+        if (
+          !query('GET_ALLOW_FILE_ENCODE') ||
+          (!isFile(file) && !Array.isArray(file))
+        ) {
           return resolve(file);
         } // store metadata settings for this cache
 
@@ -127,9 +134,9 @@
 
       view.registerWriter(
         createRoute({
-          DID_PREPARE_OUTPUT: function DID_PREPARE_OUTPUT(_ref4) {
-            var root = _ref4.root,
-              action = _ref4.action;
+          DID_PREPARE_OUTPUT: function DID_PREPARE_OUTPUT(_ref6) {
+            var root = _ref6.root,
+              action = _ref6.action;
 
             // only do this if is not uploading async
             if (query('IS_ASYNC')) {
@@ -152,8 +159,8 @@
               data: data
             });
           },
-          DID_REMOVE_ITEM: function DID_REMOVE_ITEM(_ref5) {
-            var action = _ref5.action;
+          DID_REMOVE_ITEM: function DID_REMOVE_ITEM(_ref7) {
+            var action = _ref7.action;
             var item = query('GET_ITEM', action.id);
             if (!item) return;
             delete base64Cache[item.id];
