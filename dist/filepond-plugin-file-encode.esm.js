@@ -1,13 +1,11 @@
-/*
- * FilePondPluginFileEncode 2.1.1
- * Licensed under MIT, https://opensource.org/licenses/MIT
- * Please visit https://pqina.nl/filepond for details.
+/*!
+ * FilePondPluginFileEncode 2.1.2
+ * Licensed under MIT, https://opensource.org/licenses/MIT/
+ * Please visit https://pqina.nl/filepond/ for details.
  */
 
 /* eslint-disable */
-/**
- * DataURI Worker
- */
+
 const DataURIWorker = function() {
   // route messages
   self.onmessage = e => {
@@ -28,7 +26,7 @@ const DataURIWorker = function() {
   };
 };
 
-var plugin$1 = ({ addFilter, utils }) => {
+const plugin = ({ addFilter, utils }) => {
   // get quick reference to Type utils
   const { Type, createWorker, createRoute, isFile } = utils;
 
@@ -43,6 +41,13 @@ var plugin$1 = ({ addFilter, utils }) => {
 
   // holds base64 strings till can be moved to item
   const base64Cache = [];
+  addFilter('DID_CREATE_ITEM', item => {
+    item.extend('getFileEncodeBase64String', () => base64Cache[item.id].data);
+    item.extend(
+      'getFileEncodeDataURL',
+      () => `data:${item.fileType};base64,${base64Cache[item.id].data}`
+    );
+  });
 
   addFilter(
     'SHOULD_PREPARE_OUTPUT',
@@ -64,15 +69,15 @@ var plugin$1 = ({ addFilter, utils }) => {
         // store metadata settings for this cache
         base64Cache[item.id] = {
           metadata: item.getMetadata(),
-          imagedata: null
+          data: null
         };
 
         // wait for all file items to be encoded
         Promise.all(
           (file instanceof Blob ? [{ name: null, file }] : file).map(encode)
-        ).then(imagedataItems => {
-          base64Cache[item.id].imagedata =
-            file instanceof Blob ? imagedataItems[0].data : imagedataItems;
+        ).then(dataItems => {
+          base64Cache[item.id].data =
+            file instanceof Blob ? dataItems[0].data : dataItems;
           resolve(file);
         });
       })
@@ -102,7 +107,7 @@ var plugin$1 = ({ addFilter, utils }) => {
           // extract base64 string
           const cache = base64Cache[item.id];
           const metadata = cache.metadata;
-          const data = cache.imagedata;
+          const data = cache.data;
 
           // create JSON string from encoded data and stores in the hidden input field
           root.ref.data.value = JSON.stringify({
@@ -113,9 +118,11 @@ var plugin$1 = ({ addFilter, utils }) => {
             metadata: metadata,
             data
           });
-
-          // clear
-          base64Cache[item.id].imagedata = null;
+        },
+        DID_REMOVE_ITEM: ({ action }) => {
+          const item = query('GET_ITEM', action.id);
+          if (!item) return;
+          delete base64Cache[item.id];
         }
       })
     );
@@ -129,13 +136,13 @@ var plugin$1 = ({ addFilter, utils }) => {
   };
 };
 
+// fire pluginloaded event if running in browser, this allows registering the plugin when using async script tags
 const isBrowser =
   typeof window !== 'undefined' && typeof window.document !== 'undefined';
-
 if (isBrowser) {
   document.dispatchEvent(
-    new CustomEvent('FilePond:pluginloaded', { detail: plugin$1 })
+    new CustomEvent('FilePond:pluginloaded', { detail: plugin })
   );
 }
 
-export default plugin$1;
+export default plugin;
