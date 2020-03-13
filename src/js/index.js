@@ -82,8 +82,8 @@ const plugin = ({ addFilter, utils }) => {
                     const metadata = cache.metadata;
                     const data = cache.data;
 
-                    // create JSON string from encoded data and stores in the hidden input field
-                    root.ref.data.value = JSON.stringify({
+                    // create JSON string from encoded data
+                    const value = JSON.stringify({
                         id: item.id,
                         name: item.file.name,
                         type: item.file.type,
@@ -91,6 +91,18 @@ const plugin = ({ addFilter, utils }) => {
                         metadata: metadata,
                         data
                     });
+
+                    // for filepond < 4.13.0
+                    if (root.ref.data) {
+                        root.ref.data.value = value;
+                    }
+                    // newer versions
+                    else {
+                        root.dispatch('DID_DEFINE_VALUE', {
+                            id: item.id, value
+                        });
+                    }
+
 
                 },
                 DID_REMOVE_ITEM: ({ action }) => {

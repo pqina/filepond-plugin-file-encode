@@ -1,5 +1,5 @@
 /*!
- * FilePondPluginFileEncode 2.1.4
+ * FilePondPluginFileEncode 2.1.5
  * Licensed under MIT, https://opensource.org/licenses/MIT/
  * Please visit https://pqina.nl/filepond/ for details.
  */
@@ -144,8 +144,8 @@
             var metadata = cache.metadata;
             var data = cache.data;
 
-            // create JSON string from encoded data and stores in the hidden input field
-            root.ref.data.value = JSON.stringify({
+            // create JSON string from encoded data
+            var value = JSON.stringify({
               id: item.id,
               name: item.file.name,
               type: item.file.type,
@@ -153,6 +153,18 @@
               metadata: metadata,
               data: data
             });
+
+            // for filepond < 4.13.0
+            if (root.ref.data) {
+              root.ref.data.value = value;
+            }
+            // newer versions
+            else {
+              root.dispatch('DID_DEFINE_VALUE', {
+                id: item.id,
+                value: value
+              });
+            }
           },
           DID_REMOVE_ITEM: function DID_REMOVE_ITEM(_ref7) {
             var action = _ref7.action;
