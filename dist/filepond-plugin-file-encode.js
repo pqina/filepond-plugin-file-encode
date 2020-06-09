@@ -1,5 +1,5 @@
 /*!
- * FilePondPluginFileEncode 2.1.5
+ * FilePondPluginFileEncode 2.1.6
  * Licensed under MIT, https://opensource.org/licenses/MIT/
  * Please visit https://pqina.nl/filepond/ for details.
  */
@@ -66,7 +66,7 @@
       if (!query('GET_ALLOW_FILE_ENCODE')) return;
 
       item.extend('getFileEncodeBase64String', function() {
-        return base64Cache[item.id].data;
+        return base64Cache[item.id] && base64Cache[item.id].data;
       });
       item.extend('getFileEncodeDataURL', function() {
         return 'data:'
