@@ -20,7 +20,7 @@ const plugin = ({ addFilter, utils }) => {
             
             if (!query('GET_ALLOW_FILE_ENCODE')) return;
 
-            item.extend('getFileEncodeBase64String', () => base64Cache[item.id].data);
+            item.extend('getFileEncodeBase64String', () => base64Cache[item.id] && base64Cache[item.id].data);
             item.extend('getFileEncodeDataURL', () => `data:${item.fileType};base64,${base64Cache[item.id].data}`);
         }
     );
