@@ -1,5 +1,5 @@
 /*!
- * FilePondPluginFileEncode 2.1.6
+ * FilePondPluginFileEncode 2.1.7
  * Licensed under MIT, https://opensource.org/licenses/MIT/
  * Please visit https://pqina.nl/filepond/ for details.
  */
