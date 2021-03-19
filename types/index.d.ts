@@ -1,8 +1,9 @@
-declare module "filepond-plugin-file-encode" {
-  const FilePondPluginFileEncode: FilePondPluginFileEncodeProps;
-  export interface FilePondPluginFileEncodeProps {
+// @ts-ignore
+import { FilePondOptions } from "filepond";
+
+declare module "filepond" {
+  export interface FilePondOptions {
     /** Enable or disable file encode. */
     allowFileEncode?: boolean;
   }
-  export default FilePondPluginFileEncode;
 }
