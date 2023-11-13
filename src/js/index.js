@@ -16,7 +16,7 @@ const plugin = ({ addFilter, utils }) => {
     // holds base64 strings till can be moved to item
     const base64Cache = [];
     addFilter('DID_CREATE_ITEM', (item, { query }) => {
-        if (!query('GET_ALLOW_FILE_ENCODE') || !base64Cache[item.id]) return;
+        if (!query('GET_ALLOW_FILE_ENCODE')) return;
 
         item.extend(
             'getFileEncodeBase64String',
@@ -24,7 +24,8 @@ const plugin = ({ addFilter, utils }) => {
         );
         item.extend(
             'getFileEncodeDataURL',
-            () => `data:${item.fileType};base64,${base64Cache[item.id].data}`
+            () =>
+                base64Cache[item.id] && `data:${item.fileType};base64,${base64Cache[item.id].data}`
         );
     });
 
