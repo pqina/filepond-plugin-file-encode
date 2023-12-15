@@ -1,5 +1,5 @@
 /*!
- * FilePondPluginFileEncode 2.1.12
+ * FilePondPluginFileEncode 2.1.14
  * Licensed under MIT, https://opensource.org/licenses/MIT/
  * Please visit https://pqina.nl/filepond/ for details.
  */
@@ -60,14 +60,17 @@
         var base64Cache = [];
         addFilter('DID_CREATE_ITEM', function(item, _ref3) {
             var query = _ref3.query;
-            if (!query('GET_ALLOW_FILE_ENCODE') || !base64Cache[item.id]) return;
+            if (!query('GET_ALLOW_FILE_ENCODE')) return;
 
             item.extend('getFileEncodeBase64String', function() {
                 return base64Cache[item.id] && base64Cache[item.id].data;
             });
 
             item.extend('getFileEncodeDataURL', function() {
-                return 'data:'.concat(item.fileType, ';base64,').concat(base64Cache[item.id].data);
+                return (
+                    base64Cache[item.id] &&
+                    'data:'.concat(item.fileType, ';base64,').concat(base64Cache[item.id].data)
+                );
             });
         });
 
